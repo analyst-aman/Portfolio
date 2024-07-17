@@ -60,7 +60,7 @@ Welcome to my GitHub Portfolio! I am a passionate Biotech graduate with a strong
 Feel free to reach out to me through the following channels:
 
 - **Email:** amanchamadiya123@gmail.com
-- **LinkedIn:** [Aman Chamadiya](https://www.linkedin.com/in/amanchamadiya)
+- **LinkedIn:** [Aman Chamadiya]([https://www.linkedin.com/in/amanchamadiya])
 
 Thank you for visiting my portfolio! I am always open to feedback, collaboration, and new opportunities. Let's connect and make a positive impact together!
 
