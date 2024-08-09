@@ -1,0 +1,558 @@
+#######
+#load foreign package
+
+library(foreign)
+
+#read in data to R
+
+BRFSS_a <- read.xport("LLCP2022.xpt")
+
+colnames(BRFSS_a)
+
+######### 
+
+#define object list of variables to be kept
+
+BRFSSVarList <- c("DIABETE4", 
+			"X_BMI5",
+			"X_BMI5CAT",
+			"X_HISPANC",
+			"ALCDAY4",
+			"SMOKE100",
+			"CVDSTRK3",
+			"X_MICHD",
+			"X_TOTINDA",
+			"X_RFDRHV8",
+			"X_HLTHPLN",
+			"MEDCOST1",
+			"GENHLTH",
+			"MENTHLTH",
+			"PHYSHLTH",
+			"DIFFWALK",
+			"X_SEX",
+			"X_AGE_G",
+			"EDUCA",
+			"INCOME3")
+
+#subset by varlist
+
+BRFSS_b <- BRFSS_a[BRFSSVarList]
+
+#check columns
+
+colnames(BRFSS_b)
+
+#check rows
+
+nrow(BRFSS_b)
+
+#########  
+
+#Figure out the number of rows in the original dataset
+
+nrow(BRFSS_b)
+
+#subset the dataset for only hispanic
+
+BRFSS_c <- subset(BRFSS_b, X_HISPANC==1)
+
+#make sure the variable looks right
+
+BRFSS_c$X_HISPANC
+
+#Figure out how many rows are in resulting dataset
+
+nrow(BRFSS_c)
+
+
+#only keep rows with with valid alcohol/exposure variable
+
+BRFSS_d <- subset(BRFSS_c, ALCDAY4 < 777 | ALCDAY4==888)
+
+#make sure variable looks right
+
+BRFSS_d$ALCDAY4
+
+#count rows in new dataset
+
+nrow(BRFSS_d)
+
+#only keep rows with responses that reported exercercise in past 30 days
+
+BRFSS_e <- subset(BRFSS_d, X_TOTINDA < 9)
+
+#make sure variable looks right
+
+BRFSS_e$X_TOTINDA
+#count rows in new dataset
+
+nrow(BRFSS_e)
+
+#only keep rows with valid Smoking variable
+
+BRFSS_f <- subset(BRFSS_e, SMOKE100 < 7)
+
+#make sure variable looks right
+
+BRFSS_f$SMOKE100
+#count rows in new dataset
+
+nrow(BRFSS_f)
+
+
+####
+#Add indicator variable for hispanics
+
+#Make a copy of the dataset
+BRFSS_g <- BRFSS_f
+
+#add the categorical variable set to 9 to the dataset
+BRFSS_g$ALCGRP <- 9
+
+#Update according to the data dictionary
+BRFSS_g$ALCGRP[BRFSS_g$ALCDAY4 <200 ] <- 3
+BRFSS_g$ALCGRP[BRFSS_g$ALCDAY4 >=200 & BRFSS_g$ALCDAY5 <777] <- 2
+BRFSS_g$ALCGRP[BRFSS_g$ALCDAY4 == 888] <- 1
+
+#Check variable
+
+table(BRFSS_g$ALCGRP, BRFSS_g$ALCDAY4)
+
+#Add flags
+
+BRFSS_g$DRKMONTHLY <- 0
+BRFSS_g$DRKMONTHLY[BRFSS_g$ALCGRP == 2] <- 1
+
+table(BRFSS_g$ALCGRP, BRFSS_g$DRKMONTHLY)
+
+BRFSS_g$DRKWEEKLY <- 0
+BRFSS_g$DRKWEEKLY [BRFSS_g$ALCGRP == 1] <- 1
+
+table(BRFSS_g$ALCGRP, BRFSS_g$DRKWEEKLY)
+
+###### making outcome var DIABETE_01
+
+#Make a copy of the dataset
+BRFSS_h <- BRFSS_g
+
+#Make and test DIABETE_01 variable
+
+BRFSS_h$DIABETE_01 <- 9
+BRFSS_h$DIABETE_01[BRFSS_h$DIABETE4 == 1 ] <- 2
+BRFSS_h$DIABETE_01[BRFSS_h$DIABETE4 == 4 ] <- 1
+BRFSS_h$DIABETE_01[BRFSS_h$DIABETE4 == 2 | BRFSS_h$DIABETE4 == 3] <- 0
+
+table(BRFSS_h$DIABETE4, BRFSS_h$DIABETE_01)
+
+
+######## making categorical var
+
+#Make a copy of the dataset
+BRFSS_i <- BRFSS_h
+
+#Add and check age variables
+
+BRFSS_i$AGE2 <- 0
+BRFSS_i$AGE3 <- 0
+BRFSS_i$AGE4 <- 0
+BRFSS_i$AGE5 <- 0
+BRFSS_i$AGE6 <- 0
+
+BRFSS_i$AGE2[BRFSS_i$X_AGE_G == 2] <- 1
+table(BRFSS_i$X_AGE_G, BRFSS_i$AGE2)
+
+BRFSS_i$AGE3[BRFSS_i$X_AGE_G == 3] <- 1
+table(BRFSS_i$X_AGE_G, BRFSS_i$AGE3)
+
+BRFSS_i$AGE4[BRFSS_i$X_AGE_G == 4] <- 1
+table(BRFSS_i$X_AGE_G, BRFSS_i$AGE4)
+
+BRFSS_i$AGE5[BRFSS_i$X_AGE_G == 5] <- 1
+table(BRFSS_i$X_AGE_G, BRFSS_i$AGE5)
+
+BRFSS_i$AGE6[BRFSS_i$X_AGE_G == 6] <- 1
+table(BRFSS_i$X_AGE_G, BRFSS_i$AGE6)
+
+#make smoking variables
+
+BRFSS_i$NEVERSMK <- 0
+BRFSS_i$NEVERSMK [BRFSS_i$SMOKE100 == 2] <- 1
+table(BRFSS_i$SMOKE100, BRFSS_i$NEVERSMK)
+
+#make sex variable
+
+BRFSS_i$MALE <- 0
+BRFSS_i$MALE[BRFSS_i$X_SEX == 1] <- 1
+
+table(BRFSS_i$MALE, BRFSS_i$X_SEX)
+
+
+#Make Genhealth variables
+
+BRFSS_i$GENHLTH2 <- 9
+BRFSS_i$GENHLTH2[BRFSS_i$GENHLTH == 1] <- 1
+BRFSS_i$GENHLTH2[BRFSS_i$GENHLTH == 2] <- 2
+BRFSS_i$GENHLTH2[BRFSS_i$GENHLTH == 3] <- 3
+BRFSS_i$GENHLTH2[BRFSS_i$GENHLTH == 4] <- 4
+BRFSS_i$GENHLTH2[BRFSS_i$GENHLTH == 5] <- 5
+
+table(BRFSS_i$GENHLTH2, BRFSS_i$GENHLTH)
+
+BRFSS_i$FAIRHLTH <- 0
+BRFSS_i$POORHLTH <- 0
+
+BRFSS_i$FAIRHLTH [BRFSS_i$GENHLTH2 == 4] <- 1
+table(BRFSS_i$FAIRHLTH, BRFSS_i$GENHLTH2)
+
+BRFSS_i$POORHLTH [BRFSS_i$GENHLTH2 == 5] <- 1
+table(BRFSS_i$POORHLTH, BRFSS_i$GENHLTH2)
+
+#Make health plan variables
+
+BRFSS_i$HLTHPLN2 <- 9
+BRFSS_i$HLTHPLN2[BRFSS_i$X_HLTHPLN == 1] <- 1
+BRFSS_i$HLTHPLN2[BRFSS_i$X_HLTHPLN == 2] <- 2
+
+table(BRFSS_i$X_HLTHPLN, BRFSS_i$HLTHPLN2)
+
+BRFSS_i$NOPLAN <- 0
+BRFSS_i$NOPLAN [BRFSS_i$HLTHPLN2== 2] <- 1
+table(BRFSS_i$NOPLAN, BRFSS_i$HLTHPLN2)
+
+#Make education variables
+
+BRFSS_i$EDGROUP <- 9
+BRFSS_i$EDGROUP[BRFSS_i$EDUCA == 1 | BRFSS_i$EDUCA == 2 | BRFSS_i$EDUCA == 3] <- 1
+BRFSS_i$EDGROUP[BRFSS_i$EDUCA == 4] <- 2
+BRFSS_i$EDGROUP[BRFSS_i$EDUCA == 5] <- 3
+BRFSS_i$EDGROUP[BRFSS_i$EDUCA == 6] <- 4
+
+table(BRFSS_i$EDGROUP, BRFSS_i$EDUCA)
+
+BRFSS_i$LOWED <- 0
+BRFSS_i$SOMECOLL <- 0
+
+BRFSS_i$LOWED[BRFSS_i$EDGROUP == 1 | BRFSS_i$EDGROUP == 2 ] <- 1
+table(BRFSS_i$LOWED, BRFSS_i$EDGROUP)
+
+BRFSS_i$SOMECOLL [BRFSS_i$EDGROUP == 3] <- 1
+table(BRFSS_i$SOMECOLL, BRFSS_i$EDGROUP)
+
+#Make income variables
+
+BRFSS_i$INCOME2 <- BRFSS_i$INCOME3
+BRFSS_i$INCOME2[BRFSS_i$INCOME3 >=77] <- 9
+
+table(BRFSS_i$INCOME2, BRFSS_i$INCOME3)
+
+BRFSS_i$INC1 <- 0
+BRFSS_i$INC2 <- 0
+BRFSS_i$INC3 <- 0
+BRFSS_i$INC4 <- 0
+BRFSS_i$INC5 <- 0
+BRFSS_i$INC6 <- 0
+BRFSS_i$INC7 <- 0
+
+BRFSS_i$INC1[BRFSS_i$INCOME2 == 1] <- 1
+table(BRFSS_i$INC1, BRFSS_i$INCOME2)
+
+BRFSS_i$INC2[BRFSS_i$INCOME2 == 2] <- 1
+table(BRFSS_i$INC2, BRFSS_i$INCOME2)
+
+BRFSS_i$INC3[BRFSS_i$INCOME2 == 3] <- 1
+table(BRFSS_i$INC3, BRFSS_i$INCOME3)
+
+BRFSS_i$INC4[BRFSS_i$INCOME2 == 4] <- 1
+table(BRFSS_i$INC4, BRFSS_i$INCOME2)
+
+BRFSS_i$INC5[BRFSS_i$INCOME2 == 5] <- 1
+table(BRFSS_i$INC5, BRFSS_i$INCOME2)
+
+BRFSS_i$INC6[BRFSS_i$INCOME2 == 6] <- 1
+table(BRFSS_i$INC6, BRFSS_i$INCOME2)
+
+BRFSS_i$INC7[BRFSS_i$INCOME2 == 7] <- 1
+table(BRFSS_i$INC7, BRFSS_i$INCOME2)
+
+#Make BMI variables
+
+BRFSS_i$BMICAT<- 9
+BRFSS_i$BMICAT[BRFSS_i$X_BMI5CAT ==1] <- 1
+BRFSS_i$BMICAT[BRFSS_i$X_BMI5CAT ==2] <- 2
+BRFSS_i$BMICAT[BRFSS_i$X_BMI5CAT ==3] <- 3
+BRFSS_i$BMICAT[BRFSS_i$X_BMI5CAT ==4] <- 4
+
+table(BRFSS_i$BMICAT, BRFSS_i$X_BMI5CAT)
+
+BRFSS_i$UNDWT <- 0
+BRFSS_i$OVWT <- 0
+BRFSS_i$OBESE <- 0
+
+BRFSS_i$UNDWT[BRFSS_i$BMICAT== 1] <- 1
+table(BRFSS_i$UNDWT, BRFSS_i$BMICAT)
+
+BRFSS_i$OVWT[BRFSS_i$BMICAT== 3] <- 1
+table(BRFSS_i$OVWT, BRFSS_i$BMICAT)
+
+BRFSS_i$OBESE[BRFSS_i$BMICAT== 4] <- 1
+table(BRFSS_i$OBESE, BRFSS_i$BMICAT)
+
+#make exercise variables
+
+BRFSS_i$TOTINDA_01<- 9
+BRFSS_i$TOTINDA_01[BRFSS_i$X_TOTINDA ==1] <- 1
+BRFSS_i$TOTINDA_01[BRFSS_i$EXERANY2 ==2] <- 2
+
+table(BRFSS_i$TOTINDA_01, BRFSS_i$X_TOTINDA)
+
+BRFSS_i$NOEXER <- 0
+BRFSS_i$NOEXER[BRFSS_i$TOTINDA_01 ==2] <- 1
+table(BRFSS_i$NOEXER, BRFSS_i$TOTINDA_01)
+
+nrow(BRFSS_i)
+
+###### exporting dataset to csv
+
+
+write.csv(BRFSS_i, file = "analytic.csv")
+
+##### checking variables
+#read in analytic table
+
+analytic1 <- read.csv("analytic.csv", header=TRUE, sep=",")
+analytic <- na.omit(analytic1)
+
+#Look at distribution of Diabetes
+
+DiabeteFreq <- table(analytic$DIABETE_01)
+DiabeteFreq
+write.csv(DiabeteFreq, file = "DiabeteFreq.csv")
+
+#what proportion of our dataset has Diabetes?
+PropDiabete <- 5426/37476*100
+PropDiabete
+
+#Look at categorical outcome Diabetes by exposure, ALCGRP
+
+DiabeteAlcFreq <- table(analytic$DIABETE_01, analytic$ALCGRP)
+DiabeteAlcFreq
+write.csv(DiabeteAlcFreq, file = "DiabeteAlcFreq.csv")
+
+#Look at categorical outcome Diabetes by exposure, TOTINDA_01 exercise
+
+DiabeteExerFreq <- table(analytic$DIABETE_01, analytic$TOTINDA_01)
+DiabeteExerFreq
+write.csv(DiabeteExerFreq, file = "DiabeteExerFreq.csv")
+
+#Look at categorical outcome Diabetes by exposure, X_RFDRHV8  Heavy Drinker
+
+DiabeteHeavyDrnkFreq <- table(analytic$DIABETE_01, analytic$X_RFDRHV8)
+DiabeteHeavyDrnkFreq
+write.csv(DiabeteHeavyDrnkFreq, file = "DiabeteHeavyDrnkFreq.csv")
+
+
+#Look at distribution of BMI 
+
+#summary statistics
+
+summary(analytic$X_BMI5)
+
+#look at histogram and box plot of total file
+
+hist(analytic$X_BMI5, 
+	main = "Histogram of X_BMI5",
+	xlab = "Class X_BMI5",
+	ylab = "Frequency",
+	xlim=c(0,10000), 
+	ylim=c(0,15000),
+	border = "red",
+	col= "yellow",
+	las = 1,
+	breaks = 24)
+
+boxplot(analytic$X_BMI5, main="Box Plot of X_BMI5", 
+  	xlab="Total File", ylab="X_BMI5")
+
+#See box plots of groups next to each other
+
+boxplot(X_BMI5~ALCGRP, data=analytic, main="Box Plot of X_BMI5 by ALCGRP", 
+  	xlab="ALCGRP", ylab="X_BMI5")
+#See box plots of groups next to each other
+
+boxplot(X_BMI5~ DIABETE_01, data=analytic, main="Box Plot of X_BMI5 by DIABETE_01", 
+  	xlab="DIABETE_01", ylab="X_BMI5")
+
+
+######### Useing Macros : gtools 
+#USING MACROS
+
+#install package gtools
+#then call up library
+
+library(gtools)
+
+#use defmacro to define the macro
+
+FreqTbl <-defmacro(OutputTable, InputVar, CSVTable, 
+expr={
+OutputTable <- table(InputVar);
+write.csv(OutputTable, file = paste0(CSVTable, ".csv"))
+})
+
+
+FreqTbl (AlcFreq, analytic$ALCGRP, "Alc")
+FreqTbl (AgeFreq, analytic$X_AGE_G, "Age")
+FreqTbl (SexFreq, analytic$X_SEX, "Sex")
+FreqTbl (HispFreq, analytic$X_HISPANC, "Hisp")
+FreqTbl (EdFreq, analytic$EDGROUP, "Ed")
+FreqTbl (IncFreq, analytic$INCOME2, "Inc")
+FreqTbl (BMIFreq, analytic$BMICAT, "BMI")
+FreqTbl (ExerFreq, analytic$TOTINDA_01, "Exer")
+FreqTbl (HlthPlanFreq, analytic$HLTHPLN2, "HlthPln")
+FreqTbl (GenHlthFreq, analytic$GENHLTH2, "GenHlth")
+FreqTbl (ExerFreq, analytic$TOTINDA_01, "Exercise")
+
+
+#subset dataset with only exercising people
+
+exeronly <- subset(analytic, TOTINDA_01 == 1)
+table(exeronly $TOTINDA_01)
+nrow(exeronly)
+
+ExerFreq <- table(exeronly$TOTINDA_01)
+ExerFreq
+write.csv(ExerFreq, file = "Exer.csv")
+
+#USING MACROS
+
+#install package gtools
+#then call up library
+
+library(gtools)
+
+#use defmacro to define the macro
+
+FreqTbl <-defmacro(OutputTable, InputVar, CSVTable, 
+expr={
+OutputTable <- table(InputVar);
+write.csv(OutputTable, file = paste0(CSVTable, ".csv"))
+})
+
+FreqTbl (AlcFreqExer, exeronly$ALCGRP, "Alc ")
+FreqTbl (AgeFreqExer, exeronly$X_AGE_G, "Age")
+FreqTbl (SexFreqExer, exeronly$X_SEX, "Sex")
+FreqTbl (HispFreqExer, exeronly$X_HISPANC, "Hisp")
+FreqTbl (EdFreqExer, exeronly$EDGROUP, "Ed")
+FreqTbl (IncFreqExer, exeronly$INCOME2, "Inc")
+FreqTbl (BMIFreqExer, exeronly$BMICAT, "BMI")
+FreqTbl (ExerFreqExer, exeronly$TOTINDA_01, "Exer")
+FreqTbl (HlthPlanFreqExer, exeronly$HLTHPLN2, "HlthPln")
+FreqTbl (GenHlthFreqExer, exeronly$GENHLTH2, "GenHlth")
+FreqTbl (ExerFreqExer, exeronly$TOTINDA_01, "Exercise")
+
+######## mean and standard deviation
+
+#read in analytic table
+
+mean(analytic$X_BMI5)
+sd(analytic$X_BMI5)
+
+#load package plyr
+
+library(plyr)
+
+#example
+
+ddply(analytic,~DIABETE_01,summarise,mean=mean(X_BMI5),sd=sd(X_BMI5))
+
+#USING MACROS
+
+library(gtools)
+
+SumTbl <- defmacro(OutputTable, GroupVar, CSVTable,
+expr={
+OutputTable <- ddply(analytic,~GroupVar,summarise,mean=mean(X_BMI5),sd=sd(X_BMI5));
+write.csv(OutputTable, file = paste0(CSVTable, ".csv"))
+})
+
+SumTbl (AlcGrpSum, analytic$ALCGRP, "AlcGrpSum")
+SumTbl (AgeGrpSum, analytic$X_AGE_G, "AgeGrpSum")
+SumTbl (SexSum, analytic$SEX, "SexSum")
+SumTbl (HispSum, analytic$X_HISPANC, "HispSum")
+SumTbl (EdSum, analytic$EDGROUP, "EdSum")
+SumTbl (IncSum, analytic$INCOME3, "IncSum")
+SumTbl (BMISum, analytic$BMICAT, "BMISum")
+SumTbl (ExerSum, analytic$TOTINDA_01, "ExerSum")
+SumTbl (HlthPlanSum, analytic$HLTHPLN2, "HlthPlanSum")
+SumTbl (GenHlthSum, analytic$GENHLTH2, "GenHlthSum")
+
+
+
+######## Chi test
+
+#load MASS library
+library(MASS)
+
+#make table
+ExerTable = table(analytic$DIABETE_01,  analytic$TOTINDA_01)
+
+#runtest
+chisq.test(ExerTable)
+
+#make macro
+
+library(gtools)
+
+ChiTest <- defmacro(VarName, TblName, expr={TblName = table(analytic$DIABETE_01, analytic$VarName);
+	chisq.test(TblName, simulate.p.value = TRUE, B = 5000)})
+	
+ChiTest(ALCGRP, AlcTbl)
+ChiTest(X_AGE_G, AgeTbl)
+ChiTest(X_SEX, SexTbl)
+ChiTest(X_HISPANC, HispTbl)
+ChiTest(EDGROUP, EdTbl)
+ChiTest(INCOME3, IncTbl)
+ChiTest(BMICAT, BMITbl)
+ChiTest(TOTINDA_01, ExerTbl)
+ChiTest(HLTHPLN2, HlthPlnTbl)
+ChiTest(GENHLTH2, GenHlthTbl)
+ChiTest(NEVERSMK, SmokTbl)	
+
+
+######### Anova test
+
+ANOVAS for Table 1
+
+#example ANOVA
+
+ExerANOVA <- lm(formula = DIABETE_01 ~ TOTINDA_01, data = analytic)
+summary(ExerANOVA)
+
+#make macro
+
+ANOVATest <- defmacro(VarName, TblName, expr={
+TblName<- lm(formula = DIABETE_01 ~ VarName, data = analytic);
+summary(TblName)})
+
+#call macro
+
+ANOVATest(ALCGRP, AlcTbl)
+ANOVATest(X_AGE_G, AgeTbl)
+ANOVATest(X_SEX, SexTbl)
+ANOVATest(X_HISPANC, HispTbl)
+ANOVATest(EDGROUP, EdTbl)
+ANOVATest(INCOME3, IncTbl)
+ANOVATest(BMICAT, BMITbl)
+ANOVATest(TOTINDA_01, ExerTbl)
+ANOVATest(HLTHPLN2, HlthPlnTbl)
+ANOVATest(GENHLTH2, GenHlthTbl)
+ANOVATest(NEVERSMK, SmokTbl)	
+
+####### t test
+ 
+#ttests for SEX and Never Smoke
+
+t.test(analytic$DIABETE_01 ~analytic$NEVERSMK) 
+t.test(analytic$DIABETE_01 ~analytic$MALE)
+
+
